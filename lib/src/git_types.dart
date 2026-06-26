@@ -1805,3 +1805,34 @@ enum GitWorktree {
     _ => throw ArgumentError('Unknown value for GitWorktree: $value'),
   };
 }
+
+/// Bitmask of the hostkey fields made available by libssh2 for an SSH
+/// remote, as reported on [CertificateHostkey.available].
+enum GitCertificateSsh {
+  /// MD5 hash of the host key is available.
+  md5(1),
+
+  /// SHA-1 hash of the host key is available.
+  sha1(2),
+
+  /// SHA-256 hash of the host key is available.
+  sha256(4),
+
+  /// Raw host key is available.
+  raw(8);
+
+  const GitCertificateSsh(this.value);
+  final int value;
+
+  static GitCertificateSsh fromValue(int value) => switch (value) {
+    1 => md5,
+    2 => sha1,
+    4 => sha256,
+    8 => raw,
+    _ => throw ArgumentError('Unknown value for GitCertificateSsh: $value'),
+  };
+
+  static Set<GitCertificateSsh> fromFlag(int value) => GitCertificateSsh.values
+      .where((e) => value & e.value == e.value)
+      .toSet();
+}

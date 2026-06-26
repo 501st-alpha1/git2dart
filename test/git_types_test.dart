@@ -416,6 +416,35 @@ void main() {
       expect(actual, expected);
     });
 
+    test('GitCertificateSsh returns correct values', () {
+      const expected = {
+        GitCertificateSsh.md5: 1,
+        GitCertificateSsh.sha1: 2,
+        GitCertificateSsh.sha256: 4,
+        GitCertificateSsh.raw: 8,
+      };
+      final actual = {for (final e in GitCertificateSsh.values) e: e.value};
+      expect(actual, expected);
+    });
+
+    test('GitCertificateSsh.fromFlag returns matching flags', () {
+      expect(GitCertificateSsh.fromFlag(0), <GitCertificateSsh>{});
+      expect(GitCertificateSsh.fromFlag(1), {GitCertificateSsh.md5});
+      expect(
+        GitCertificateSsh.fromFlag(6),
+        {GitCertificateSsh.sha1, GitCertificateSsh.sha256},
+      );
+      expect(
+        GitCertificateSsh.fromFlag(15),
+        {
+          GitCertificateSsh.md5,
+          GitCertificateSsh.sha1,
+          GitCertificateSsh.sha256,
+          GitCertificateSsh.raw,
+        },
+      );
+    });
+
     test('GitFeature returns correct values', () {
       const expected = {
         GitFeature.threads: 1,
@@ -656,6 +685,11 @@ void main() {
       GitRepositoryInit.values,
     );
     testEnum('GitCredential', GitCredential.fromValue, GitCredential.values);
+    testEnum(
+      'GitCertificateSsh',
+      GitCertificateSsh.fromValue,
+      GitCertificateSsh.values,
+    );
     testEnum('GitFeature', GitFeature.fromValue, GitFeature.values);
     testEnum(
       'GitAttributeCheck',

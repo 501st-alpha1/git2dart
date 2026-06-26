@@ -222,6 +222,42 @@ class RemoteCallbacks {
     return 0;
   }
 
+  /// Callback used to perform custom verification of the remote's SSH host
+  /// key (or TLS certificate). When set, libgit2 defers the trust decision
+  /// entirely to this callback instead of falling back to a `known_hosts`
+  /// file. See [Callbacks.certificateCheck] for details.
+  static bool Function(
+    CertificateHostkey cert, {
+    required bool valid,
+    required String host,
+  })?
+  certificateCheck;
+
+  /// Native callback for custom certificate/host-key verification.
+  /// Called by libgit2 in place of its default `known_hosts`-based check.
+  static int certificateCheckCb(
+    Pointer<git_cert> cert,
+    int valid,
+    Pointer<Char> host,
+    Pointer<Void> payload,
+  ) {
+    final accepted = certificateCheck!(
+      CertificateHostkey(cert.cast<git_cert_hostkey>()),
+      valid: valid != 0,
+      host: host.toDartString(),
+    );
+
+    if (!accepted) {
+      libgit2.git_error_set_str(
+        git_error_t.GIT_ERROR_SSL.value,
+        'Certificate rejected by certificateCheck callback.'.toCharAlloc(),
+      );
+      throw LibGit2Error(libgit2.git_error_last());
+    }
+
+    return 0;
+  }
+
   /// Plugs provided callbacks into libgit2 callbacks structure.
   /// Sets up all the necessary callback functions for remote operations.
   static void plug({
@@ -269,6 +305,14 @@ class RemoteCallbacks {
         except,
       );
     }
+
+    if (callbacks.certificateCheck != null) {
+      certificateCheck = callbacks.certificateCheck;
+      callbacksOptions.certificate_check = Pointer.fromFunction(
+        certificateCheckCb,
+        except,
+      );
+    }
   }
 
   /// Resets all callback functions to their original null values.
@@ -281,5 +325,6 @@ class RemoteCallbacks {
     remoteCbData = null;
     repositoryCbData = null;
     credentials = null;
+    certificateCheck = null;
   }
 }

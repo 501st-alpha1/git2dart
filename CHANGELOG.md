@@ -1,4 +1,11 @@
 # Changelog
+## [Unreleased]
+### Features
+* Add `Callbacks.certificateCheck` to allow custom SSH host-key (and TLS
+  certificate) verification, instead of relying on a `known_hosts` file.
+  This unblocks SSH remotes in sandboxed environments — such as Android —
+  that have no usable `$HOME/.ssh/known_hosts`.
+
 ## [0.5.0] - 2026-05-30
 ### Features
 * Update `git2dart_binaries` constraint to `>=1.11.0 <1.12.0`.

@@ -19,12 +19,14 @@ class Callbacks {
   /// * [sidebandProgress] - Textual progress updates from remote
   /// * [updateTips] - Reference update notifications
   /// * [pushUpdateReference] - Push operation status updates
+  /// * [certificateCheck] - Custom SSH/TLS certificate verification
   const Callbacks({
     this.credentials,
     this.transferProgress,
     this.sidebandProgress,
     this.updateTips,
     this.pushUpdateReference,
+    this.certificateCheck,
   });
 
   /// Authentication credentials for Git operations.
@@ -62,4 +64,26 @@ class Callbacks {
   /// * [refname] - Name of the reference being pushed
   /// * [message] - Status message from the remote
   final void Function(String refname, String message)? pushUpdateReference;
+
+  /// Callback for custom certificate/host-key verification.
+  ///
+  /// When provided, libgit2 defers the trust decision for the remote's
+  /// SSH host key (or TLS certificate) entirely to this callback instead
+  /// of falling back to file-based `known_hosts` resolution. This is the
+  /// recommended way to verify SSH host keys in sandboxed environments —
+  /// such as Android — where there is no usable `$HOME/.ssh/known_hosts`
+  /// file, e.g. by implementing trust-on-first-use pinning.
+  ///
+  /// Return `true` to accept the connection, `false` to reject it (which
+  /// causes the operation to throw a [LibGit2Error]).
+  ///
+  /// * [cert] - Host key information for the remote (see [CertificateHostkey])
+  /// * [valid] - Whether libgit2's own checks consider the certificate valid
+  /// * [host] - Hostname libgit2 connected to
+  final bool Function(
+    CertificateHostkey cert, {
+    required bool valid,
+    required String host,
+  })?
+  certificateCheck;
 }

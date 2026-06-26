@@ -1,4 +1,5 @@
 import 'dart:ffi';
+import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
 import 'package:ffi/ffi.dart';
@@ -412,6 +413,77 @@ class TransferProgress {
         'localObjects: $localObjects, totalDeltas: $totalDeltas, '
         'indexedDeltas: $indexedDeltas, receivedBytes: $receivedBytes}';
   }
+}
+
+/// SSH host key information for a remote, provided to the
+/// [Callbacks.certificateCheck] callback.
+///
+/// This lets the caller implement its own trust policy (e.g.
+/// trust-on-first-use pinning, or comparing against a known fingerprint
+/// shipped with the app) instead of relying on libgit2/libssh2 falling back
+/// to a `known_hosts` file — which is unavailable in sandboxed environments
+/// such as Android, where there is no usable `$HOME`.
+class CertificateHostkey {
+  /// Initializes a new instance of [CertificateHostkey] class from provided
+  /// pointer to a `git_cert_hostkey` structure in memory.
+  ///
+  /// Note: For internal use.
+  @internal
+  const CertificateHostkey(this._certPointer);
+
+  /// Pointer to memory address for allocated hostkey certificate object.
+  final Pointer<git_cert_hostkey> _certPointer;
+
+  /// Which of the hash/raw-key fields below are actually populated for this
+  /// connection. Availability depends on the crypto backend libssh2 was
+  /// built with.
+  Set<GitCertificateSsh> get available =>
+      GitCertificateSsh.fromFlag(_certPointer.ref.type.value);
+
+  /// MD5 hash of the host key. Only meaningful if [available] contains
+  /// [GitCertificateSsh.md5]; empty otherwise.
+  Uint8List get md5 =>
+      available.contains(GitCertificateSsh.md5)
+          ? _arrayToBytes(_certPointer.ref.hash_md5, 16)
+          : Uint8List(0);
+
+  /// SHA-1 hash of the host key. Only meaningful if [available] contains
+  /// [GitCertificateSsh.sha1]; empty otherwise.
+  Uint8List get sha1 =>
+      available.contains(GitCertificateSsh.sha1)
+          ? _arrayToBytes(_certPointer.ref.hash_sha1, 20)
+          : Uint8List(0);
+
+  /// SHA-256 hash of the host key. Only meaningful if [available] contains
+  /// [GitCertificateSsh.sha256]; empty otherwise.
+  Uint8List get sha256 =>
+      available.contains(GitCertificateSsh.sha256)
+          ? _arrayToBytes(_certPointer.ref.hash_sha256, 32)
+          : Uint8List(0);
+
+  /// Raw host key bytes. Only meaningful if [available] contains
+  /// [GitCertificateSsh.raw]; empty otherwise.
+  Uint8List get rawHostkey {
+    if (!available.contains(GitCertificateSsh.raw)) {
+      return Uint8List(0);
+    }
+
+    final pointer = _certPointer.ref.hostkey;
+    final length = _certPointer.ref.hostkey_len;
+
+    if (pointer == nullptr || length == 0) {
+      return Uint8List(0);
+    }
+
+    return Uint8List.fromList(pointer.cast<Uint8>().asTypedList(length));
+  }
+
+  static Uint8List _arrayToBytes(Array<UnsignedChar> array, int length) {
+    return Uint8List.fromList([for (var i = 0; i < length; i++) array[i]]);
+  }
+
+  @override
+  String toString() => 'CertificateHostkey{available: $available}';
 }
 
 /// Values used to override the remote creation and customization process
