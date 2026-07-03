@@ -178,6 +178,39 @@ class Libgit2 {
     });
   }
 
+  /// Get the directory libgit2 currently uses as the user's home directory
+  /// for file lookups (e.g. SSH `known_hosts` resolution).
+  static String getHomeDir() {
+    libgit2.git_libgit2_init();
+    return using((arena) {
+      final out = arena<git_buf>();
+      libgit2Opts.git_libgit2_opts_get_homedir(out);
+      final result = out.ref.ptr.toDartString(length: out.ref.size);
+      libgit2.git_buf_dispose(out);
+      return result;
+    });
+  }
+
+  /// Override the directory libgit2 uses as the user's home directory for
+  /// file lookups (e.g. SSH `known_hosts` resolution).
+  ///
+  /// Unlike setting the `HOME` environment variable, this writes directly
+  /// into libgit2's own cached home-directory state, so it takes effect
+  /// immediately regardless of when libgit2's global state was initialized.
+  /// This is particularly useful on platforms — such as Android — where
+  /// there is no usable `HOME` environment variable to begin with, which
+  /// otherwise causes SSH operations to fail outright while trying to
+  /// resolve `known_hosts`.
+  ///
+  /// Pass `null` to reset to the default behavior.
+  static void setHomeDir(String? path) {
+    libgit2.git_libgit2_init();
+    using((arena) {
+      final pathC = path != null ? path.toChar(arena) : nullptr;
+      libgit2Opts.git_libgit2_opts_set_homedir(pathC);
+    });
+  }
+
   /// Set the maximum data size for caching a given object type.
   ///
   /// Setting [value] to zero means objects of that type won't be cached.

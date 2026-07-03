@@ -105,6 +105,16 @@ void main() {
       },
     );
 
+    test('sets and returns the home directory used for file lookups', () {
+      final oldValue = Libgit2.getHomeDir();
+
+      Libgit2.setHomeDir('/tmp/git2dart-home-test');
+      expect(Libgit2.getHomeDir(), '/tmp/git2dart-home-test');
+
+      // Reset to avoid side effects in later tests
+      Libgit2.setHomeDir(oldValue.isEmpty ? null : oldValue);
+    });
+
     test('sets the maximum data size for the given type of object '
         'to be considered eligible for caching in memory', () {
       expect(
